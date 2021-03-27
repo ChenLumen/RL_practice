@@ -9,7 +9,7 @@ print(env.observation_space)
 print(env.observation_space.high)
 print(env.observation_space.low)
 env.seed(21)
-memory_size = 100
+memory_size = 10000
 
 RL = DQNPrioritizedReplay(n_actions=env.action_space.n,
                           n_features=env.observation_space.shape[0],
