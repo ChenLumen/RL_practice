@@ -17,7 +17,7 @@ class Net(nn.Module):
         x = self.fc1(x)
         x = torch.tanh(x)
         activate_value = self.out(x)
-        activate_value = F.softmax(activate_value, dim=1)  # use softmax to convert to probability
+        activate_value = F.softmax(activate_value, dim=-1)  # use softmax to convert to probability
 
         return activate_value
 
@@ -43,7 +43,9 @@ class PolicyGradient(object):
         observation = torch.unsqueeze(torch.FloatTensor(observation), 0)
         prob_weights = self.net.forward(observation)
         # select action w.r.t the actions prob
-        action = np.random.choice(range(prob_weights.shape[1]), p=prob_weights.detach().numpy().ravel())
+        c = Categorical(prob_weights)
+        action = c.sample()
+        action = action.data.numpy().astype(int)[0]
 
         return action
 
@@ -58,6 +60,7 @@ class PolicyGradient(object):
         running_add = 0
         for t in reversed(range(0, len(self.ep_rs))):
             running_add = running_add * self.gamma + self.ep_rs[t]
+            discounted_ep_rs[t] = running_add
 
         # normalize episode rewards
         discounted_ep_rs -= np.mean(discounted_ep_rs)
@@ -71,11 +74,9 @@ class PolicyGradient(object):
 
         action_prob = self.net.forward(torch.FloatTensor(self.ep_obs))
 
-        n_length = len(self.ep_as)
-        #  convert to one-hot
-        on_hot = torch.zeros(n_length, self.n_actions).scatter_(1, torch.LongTensor(self.ep_as).view(-1, 1), 1)
-        neg_log_prob = torch.sum(-torch.log(action_prob) * on_hot, dim=1)
-        loss = torch.mean(neg_log_prob * discounted_ep_rs_norm)
+        c = Categorical(action_prob)
+        loss = -c.log_prob(torch.FloatTensor(self.ep_as)) * discounted_ep_rs_norm
+        loss = loss.mean()
 
         self.optimizer.zero_grad()
         loss.backward()
