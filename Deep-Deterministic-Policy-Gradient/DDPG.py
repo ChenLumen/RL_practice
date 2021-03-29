@@ -221,7 +221,7 @@ for episode in range(max_episode):
         ep_reward += reward
 
         if step == max_ep_step - 1:
-            print('episode: ', episode, '  reward: ', int(ep_reward), '  explore: ', var)
+            print('episode: ', episode, '  reward: ', int(ep_reward), '  explore: %0.2f' % var,)
             break
 
 print('Running time: ', time.time() - t1)
